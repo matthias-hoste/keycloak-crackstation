@@ -5,6 +5,9 @@ on:
 
 name: Release
 
+env:
+  ACTIONS_ALLOW_UNSECURE_COMMANDS: true
+
 jobs:
   release:
     name: Release
