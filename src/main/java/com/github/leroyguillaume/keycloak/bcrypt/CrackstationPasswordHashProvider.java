@@ -8,11 +8,11 @@ import org.keycloak.models.credential.PasswordCredentialModel;
 /**
  * @author <a href="mailto:pro.guillaume.leroy@gmail.com">Guillaume Leroy</a>
  */
-public class BCryptPasswordHashProvider implements PasswordHashProvider {
+public class CrackstationPasswordHashProvider implements PasswordHashProvider {
     private final int defaultIterations;
     private final String providerId;
 
-    public BCryptPasswordHashProvider(String providerId, int defaultIterations) {
+    public CrackstationPasswordHashProvider(String providerId, int defaultIterations) {
         this.providerId = providerId;
         this.defaultIterations = defaultIterations;
     }
@@ -38,13 +38,11 @@ public class BCryptPasswordHashProvider implements PasswordHashProvider {
 
     @Override
     public String encode(String rawPassword, int iterations) {
-        int cost;
-        if (iterations == -1) {
-            cost = defaultIterations;
-        } else {
-            cost = iterations;
+        try {
+            return PasswordStorage.createHash(rawPassword, iterations);
+        } catch (PasswordStorage.CannotPerformOperationException e) {
+            throw new RuntimeException(e);
         }
-        return BCrypt.with(BCrypt.Version.VERSION_2Y).hashToString(cost, rawPassword.toCharArray());
     }
 
     @Override
@@ -55,7 +53,12 @@ public class BCryptPasswordHashProvider implements PasswordHashProvider {
     @Override
     public boolean verify(String rawPassword, PasswordCredentialModel credential) {
         final String hash = credential.getPasswordSecretData().getValue();
-        BCrypt.Result verifier = BCrypt.verifyer().verify(rawPassword.toCharArray(), hash.toCharArray());
-        return verifier.verified;
+        try {
+            return PasswordStorage.verifyPassword(rawPassword, hash);
+        } catch (PasswordStorage.CannotPerformOperationException e) {
+            throw new RuntimeException(e);
+        } catch (PasswordStorage.InvalidHashException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
